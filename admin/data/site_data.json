@@ -1,0 +1,27 @@
+{
+    "hero": {
+        "title": "SARL SAMAK",
+        "subtitle": "İş Makineleri ve Endüstriyel Ekipman",
+        "description": "1998'den beri güvenilir çözümler, kaliteli hizmet",
+        "gif": "",
+        "video": "",
+        "video-webm": "C:\\fakepath\\hero-video.webm"
+    },
+    "about": {
+        "description": "1998 yılında kurulan SARL SAMAK, iş makineleri ve endüstriyel ekipman alanında faaliyet gösteren köklü bir şirkettir ve",
+        "mission": "Müşterilerimize güvenilir, kaliteli ve yenilikçi çözümler sunarak...",
+        "vision": "İş makineleri ve endüstriyel çözümler alanında...",
+        "image": "C:\\fakepath\\1_0_0_20161219154724341.jpg"
+    },
+    "contact": {
+        "address": "Endüstriyel Bölge, No: 123, Algiers, Cezayir",
+        "phone": "+213 123 456 789",
+        "email": "info@sarlsamak.com",
+        "hours": "Pazartesi - Cuma: 08:00 - 18:00\\nCumartesi: 08:00 - 14:00"
+    },
+    "services": {
+        "makine_satisi": "Kaliteli iş makineleri ve endüstriyel ekipman satışı ile projelerinizi destekliyoruz.",
+        "kiralama": "Kısa ve uzun vadeli kiralama seçenekleri ile esnek çözümler sunuyoruz.",
+        "bakim_onarim": "Uzman ekibimizle periyodik bakım ve hızlı onarım hizmetleri veriyoruz."
+    }
+}

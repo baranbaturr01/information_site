@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hero Video Oluşturucu</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        canvas {
+            border: 2px solid #333;
+            background: #000;
+            margin: 20px 0;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #c0392b;
+        }
+        .info {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 Hero Video Oluşturucu</h1>
+        <p>İş makineleri temalı animasyonlu video oluşturuluyor...</p>
+        
+        <canvas id="videoCanvas" width="1920" height="1080"></canvas>
+        
+        <div class="controls">
+            <button onclick="startRecording()">📹 Video Kaydetmeye Başla</button>
+            <button onclick="stopRecording()">⏹️ Kaydı Durdur</button>
+            <button onclick="downloadVideo()">💾 Videoyu İndir</button>
+        </div>
+        
+        <div class="info">
+            <h3>Video Özellikleri:</h3>
+            <p>📐 Çözünürlük: 1920x1080 (Full HD)</p>
+            <p>⏱️ Süre: 15 saniye</p>
+            <p>🎬 Format: MP4 (WebM codec)</p>
+            <p>🏗️ İçerik: İş makineleri animasyonu</p>
+        </div>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('videoCanvas');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status');
+        
+        let animationId;
+        let mediaRecorder;
+        let recordedChunks = [];
+        let isRecording = false;
+        let frameCount = 0;
+        const totalFrames = 450; // 15 saniye @ 30fps
+        
+        // Renk paleti
+        const colors = {
+            background: '#1a1a1a',
+            primary: '#e74c3c',
+            secondary: '#3498db',
+            accent: '#f39c12',
+            text: '#ffffff'
+        };
+        
+        // İş makinesi animasyonu için değişkenler
+        let excavatorX = -200;
+        let craneAngle = 0;
+        let truckX = -300;
+        let particles = [];
+        
+        function createParticle(x, y, color) {
+            return {
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 4,
+                vy: (Math.random() - 0.5) * 4,
+                life: 1,
+                color: color
+            };
+        }
+        
+        function drawExcavator(x, y) {
+            // Ana gövde
+            ctx.fillStyle = colors.primary;
+            ctx.fillRect(x, y + 40, 120, 60);
+            
+            // Kabin
+            ctx.fillStyle = colors.secondary;
+            ctx.fillRect(x + 80, y + 20, 40, 40);
+            
+            // Paletler
+            ctx.fillStyle = '#333';
+            ctx.fillRect(x - 10, y + 90, 140, 20);
+            
+            // Kol
+            ctx.strokeStyle = colors.accent;
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.moveTo(x + 60, y + 30);
+            ctx.lineTo(x + 40, y + 10);
+            ctx.stroke();
+            
+            // Kepçe
+            ctx.fillStyle = colors.accent;
+            ctx.beginPath();
+            ctx.arc(x + 35, y + 8, 12, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function drawCrane(x, y) {
+            // Ana kule
+            ctx.fillStyle = colors.secondary;
+            ctx.fillRect(x + 40, y + 60, 20, 120);
+            
+            // Dönen kısım
+            ctx.save();
+            ctx.translate(x + 50, y + 60);
+            ctx.rotate(craneAngle);
+            
+            // Ana kol
+            ctx.fillStyle = colors.primary;
+            ctx.fillRect(0, -10, 200, 20);
+            
+            // Halat
+            ctx.strokeStyle = colors.text;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(180, 0);
+            ctx.lineTo(180, 80);
+            ctx.stroke();
+            
+            // Yük
+            ctx.fillStyle = colors.accent;
+            ctx.fillRect(170, 80, 20, 20);
+            
+            ctx.restore();
+        }
+        
+        function drawTruck(x, y) {
+            // Kasa
+            ctx.fillStyle = colors.primary;
+            ctx.fillRect(x, y + 40, 100, 50);
+            
+            // Kabin
+            ctx.fillStyle = colors.secondary;
+            ctx.fillRect(x + 80, y + 20, 40, 40);
+            
+            // Tekerler
+            ctx.fillStyle = '#333';
+            ctx.beginPath();
+            ctx.arc(x + 20, y + 90, 15, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x + 80, y + 90, 15, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function drawBackground() {
+            // Gradient arka plan
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#1a1a1a');
+            gradient.addColorStop(1, '#2c3e50');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Yıldızlar
+            ctx.fillStyle = colors.text;
+            for (let i = 0; i < 50; i++) {
+                const x = (i * 37) % canvas.width;
+                const y = (i * 23) % canvas.height;
+                ctx.fillRect(x, y, 2, 2);
+            }
+        }
+        
+        function drawText() {
+            ctx.fillStyle = colors.text;
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            
+            // Ana başlık
+            ctx.fillText('SARL SAMAK', canvas.width / 2, 200);
+            
+            ctx.font = '24px Arial';
+            ctx.fillText('İş Makineleri ve Endüstriyel Ekipman', canvas.width / 2, 250);
+            
+            // Alt başlık
+            ctx.font = '18px Arial';
+            ctx.fillText('1998\'den beri güvenilir çözümler', canvas.width / 2, 280);
+        }
+        
+        function animate() {
+            // Arka planı temizle
+            drawBackground();
+            
+            // Animasyon değerlerini güncelle
+            excavatorX += 2;
+            if (excavatorX > canvas.width + 200) excavatorX = -200;
+            
+            craneAngle += 0.02;
+            
+            truckX += 1.5;
+            if (truckX > canvas.width + 300) truckX = -300;
+            
+            // Parçacıkları güncelle
+            particles = particles.filter(p => p.life > 0);
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.02;
+            });
+            
+            // Yeni parçacıklar ekle
+            if (Math.random() < 0.3) {
+                particles.push(createParticle(
+                    Math.random() * canvas.width,
+                    canvas.height - 50,
+                    colors.accent
+                ));
+            }
+            
+            // İş makinelerini çiz
+            drawExcavator(excavatorX, canvas.height - 150);
+            drawCrane(canvas.width / 2 - 100, canvas.height - 200);
+            drawTruck(truckX, canvas.height - 140);
+            
+            // Parçacıkları çiz
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, 4, 4);
+            });
+            ctx.globalAlpha = 1;
+            
+            // Metni çiz
+            drawText();
+            
+            frameCount++;
+            
+            if (frameCount < totalFrames) {
+                animationId = requestAnimationFrame(animate);
+            } else {
+                stopRecording();
+            }
+        }
+        
+        function startRecording() {
+            if (isRecording) return;
+            
+            isRecording = true;
+            recordedChunks = [];
+            frameCount = 0;
+            
+            // Canvas'ı video stream'e çevir
+            const stream = canvas.captureStream(30); // 30fps
+            
+            mediaRecorder = new MediaRecorder(stream, {
+                mimeType: 'video/webm;codecs=vp9'
+            });
+            
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+            
+            mediaRecorder.onstop = () => {
+                status.innerHTML = '✅ Video kaydı tamamlandı! İndirmeye hazır.';
+            };
+            
+            mediaRecorder.start();
+            animate();
+            status.innerHTML = '🎬 Video kaydediliyor...';
+        }
+        
+        function stopRecording() {
+            if (!isRecording) return;
+            
+            isRecording = false;
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+        }
+        
+        function downloadVideo() {
+            if (recordedChunks.length === 0) {
+                status.innerHTML = '❌ Önce video kaydetmelisiniz!';
+                return;
+            }
+            
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'hero-video.webm';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            status.innerHTML = '💾 Video indirildi: hero-video.webm';
+        }
+        
+        // Sayfa yüklendiğinde animasyonu başlat
+        window.addEventListener('load', () => {
+            status.innerHTML = '🎬 Video oluşturucu hazır! Kaydetmeye başlayın.';
+        });
+    </script>
+</body>
+</html>
